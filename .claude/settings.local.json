@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(grep:*)",
+      "Bash(open http://localhost:5173)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
