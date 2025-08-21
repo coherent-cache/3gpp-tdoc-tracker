@@ -9,8 +9,9 @@ A web application for managing 3GPP TDoc agenda items with approval workflow, re
 👉 **[Download 3gpp-tdoc-tracker.html](../../raw/main/dist/3gpp-tdoc-tracker.html)** 👈
 
 ### How to Use:
+
 1. **Download** the single HTML file above
-2. **Save it** to any folder alongside your 3GPP agenda HTML files  
+2. **Save it** to any folder alongside your 3GPP agenda HTML files
 3. **Double-click** to open in your web browser
 4. **No installation required** - works offline on Windows, Mac, and Linux
 
@@ -30,22 +31,26 @@ A web application for managing 3GPP TDoc agenda items with approval workflow, re
 ## Usage
 
 1. **Start the application**:
+
    ```bash
    npm install
    npm run dev
    ```
 
 2. **Load HTML Data**:
+
    - Click "Load HTML" button
    - Select a 3GPP TDoc agenda HTML file
    - Data will be parsed and displayed in the table
 
 3. **Approval Workflow**:
+
    - Click rows to select them
    - Use the approval buttons at the top to set status
    - Row backgrounds change color based on approval status
 
 4. **Create Revisions**:
+
    - Click "Revise" button in the Actions column
    - Enter revision number when prompted
    - New row is created with proper parent-child linking
