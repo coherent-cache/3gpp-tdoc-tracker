@@ -6,7 +6,9 @@ A web application for managing 3GPP TDoc agenda items with approval workflow, re
 
 **Ready to use? Download the latest version:**
 
-👉 **[Download 3gpp-tdoc-tracker.html](../../raw/main/dist/3gpp-tdoc-tracker.html)** 👈
+### 🎯 **[Download v1.0.0 from GitHub Releases](https://github.com/coherent-cache/3gpp-tdoc-tracker/releases/latest)** 🎯
+
+*Alternative: [Direct file download](../../raw/main/dist/3gpp-tdoc-tracker.html)*
 
 ### How to Use:
 
