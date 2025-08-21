@@ -33,13 +33,58 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0; /* Prevent flex item from overflowing */
 }
 
 .sidebar {
-  width: 280px;
+  width: min(280px, 25vw); /* Responsive sidebar width */
+  min-width: 250px; /* Minimum width for usability */
   border-left: 1px solid var(--border-color);
   background-color: var(--light-gray);
   overflow-y: auto;
+}
+
+/* Responsive layout for smaller screens */
+@media (max-width: 1200px) {
+  .sidebar {
+    width: min(260px, 22vw);
+    min-width: 220px;
+  }
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    right: -300px; /* Hidden by default */
+    height: 100vh;
+    width: 300px;
+    min-width: 300px;
+    z-index: 1001;
+    background: white;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+    transition: right 0.3s ease;
+    border-left: 1px solid var(--border-color);
+    overflow-y: auto;
+  }
+  
+  .sidebar.visible {
+    right: 0;
+  }
+  
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+  }
+  
+  .hamburger-btn {
+    display: block !important;
+  }
 }
 
 .toolbar {
@@ -47,9 +92,86 @@ body {
   border-bottom: 1px solid var(--border-color);
   background-color: #fff;
   display: flex;
+  flex-direction: column;
   gap: 8px;
+}
+
+.action-row {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+
+.action-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+
+.separator {
+  width: 1px;
+  height: 20px;
+  background: #ddd;
+  margin: 0 8px;
+}
+
+.hamburger-btn {
+  display: none; /* Hidden by default, shown in responsive mode */
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Responsive toolbar adjustments */
+@media (max-width: 1200px) {
+  .toolbar {
+    gap: 6px;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 900px) {
+  .toolbar {
+    gap: 4px;
+    padding: 8px;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 600px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .toolbar > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+  }
+  
+  .filter-group {
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 4px 0;
+  }
+  
+  .filter-label {
+    margin-bottom: 4px;
+  }
 }
 
 .btn {
@@ -72,6 +194,12 @@ body {
 }
 
 .btn-approved {
+  background-color: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+}
+
+.btn-agreed {
   background-color: var(--success-color);
   color: white;
   border-color: var(--success-color);
@@ -101,14 +229,76 @@ body {
   border-color: var(--danger-color);
 }
 
+.btn-save-needed {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+  animation: pulse 2s infinite;
+}
+
+.btn-save-clean {
+  background-color: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.save-status {
+  font-size: 12px;
+  color: #666;
+  margin-left: 8px;
+  font-style: italic;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 8px;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  margin-right: 4px;
+}
+
+.filter-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.filter-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
 .table-container {
   flex: 1;
   overflow: auto;
   padding: 0;
+  width: 100%;
 }
 
 .data-table {
   width: 100%;
+  min-width: 1200px; /* Ensure table doesn't get too cramped */
   border-collapse: collapse;
   font-size: 12px;
   margin: 0;
@@ -120,6 +310,58 @@ body {
   padding: 4px 6px;
   text-align: left;
   vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Responsive table adjustments */
+@media (max-width: 1400px) {
+  .data-table {
+    min-width: 1000px;
+    font-size: 11px;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 3px 4px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .data-table {
+    min-width: 800px;
+    font-size: 10px;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 2px 3px;
+  }
+}
+
+/* Ensure specific columns have appropriate widths */
+.data-table th:nth-child(1), /* TDoc */
+.data-table td:nth-child(1) {
+  min-width: 100px;
+}
+
+.data-table th:nth-child(2), /* Title */
+.data-table td:nth-child(2) {
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.data-table th:nth-child(9), /* My Approval */
+.data-table td:nth-child(9) {
+  min-width: 80px;
+  max-width: 120px;
+  text-align: center;
+}
+
+.data-table th:nth-child(10), /* My Comments */
+.data-table td:nth-child(10) {
+  min-width: 150px;
+  max-width: 250px;
 }
 
 .data-table th {
@@ -159,11 +401,30 @@ body {
   outline: 3px solid #0066cc !important;
   outline-offset: -3px !important;
   position: relative;
-  z-index: 1;
+  z-index: 20;
 }
 
 .data-table tbody tr.row-selected:hover {
   outline: 3px solid #004499 !important;
+}
+
+/* Ensure selected row outline appears over all cells including editable ones */
+.data-table tbody tr.row-selected .treated-cell {
+  position: static;
+  z-index: auto;
+}
+
+.data-table tbody tr.row-selected .my-comments-cell {
+  position: relative;
+  z-index: 1; /* Much lower than row selection */
+}
+
+.data-table tbody tr.row-selected .my-comments-cell.editable-cell {
+  z-index: 1; /* Keep it low even when editable */
+}
+
+.data-table tbody tr.row-selected .my-comments-cell.editable-cell:focus {
+  z-index: 1; /* Keep it low even when focused */
 }
 
 /* Remove individual cell outlines - only keep row-level highlight */
@@ -183,6 +444,10 @@ body {
 
 /* User approval status colors - more vibrant */
 .data-table tr.approved {
+  background-color: #7FE000 !important;
+}
+
+.data-table tr.agreed {
   background-color: #7FE000 !important;
 }
 
@@ -221,10 +486,38 @@ body {
 .my-approval-cell {
   text-align: center;
   font-weight: 500;
+  background-color: #e8f4f8 !important; /* Light blue background for My Approval */
 }
 
 .my-comments-cell {
   max-width: 200px;
+  background-color: #fffbf0 !important; /* Light cream background for My Comments */
+}
+
+/* Make comments cell more visually editable */
+.my-comments-cell.editable-cell {
+  position: relative;
+  cursor: text;
+  min-height: 24px;
+}
+
+.my-comments-cell.editable-cell:empty::before {
+  content: "Click to add comments...";
+  color: #999;
+  font-style: italic;
+  position: absolute;
+  pointer-events: none;
+}
+
+.my-comments-cell.editable-cell:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+  background-color: #fefaf0 !important; /* Slightly different shade when focused */
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.my-comments-cell.editable-cell:hover:not(:focus) {
+  box-shadow: inset 0 0 0 1px rgba(102, 175, 233, 0.3);
 }
 
 /* Treated column with comment icons */
@@ -235,7 +528,8 @@ body {
 /* Fix outline gaps in treated cell for selected rows */
 .data-table tbody tr.row-selected .treated-cell {
   outline: none !important;
-  position: relative;
+  position: static;
+  z-index: auto;
 }
 
 /* Ensure treated cell content doesn't interfere with row outline */
@@ -339,3 +633,20 @@ body {
   font-weight: 500;
   color: var(--primary-color);
 }
+
+/* Welcome screen styling */
+.table-container > div {
+  min-height: 400px;
+}
+
+/* Ensure proper spacing for welcome message */
+.table-container h3 {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-weight: 600;
+}
+
+.table-container p {
+  line-height: 1.5;
+  margin: 0;
+}
+

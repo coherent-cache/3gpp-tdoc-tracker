@@ -24,9 +24,15 @@
   }
   
   function handleKeydown(event) {
+    if (!isOpen) return; // Only handle if modal is open
+    
     if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
       handleClose();
-    } else if (event.key === 'Enter') {
+    } else if (event.key === 'Enter' && event.target.closest('.modal-content')) {
+      event.preventDefault();
+      event.stopPropagation();
       handleConfirm();
     }
   }
@@ -41,33 +47,35 @@
 {#if isOpen}
   <div class="modal-overlay" on:click={handleClose} role="dialog" aria-modal="true">
     <div class="modal-content" on:click|stopPropagation role="document">
-      <div class="modal-header">
-        <h3>{title}</h3>
-        <button class="modal-close" on:click={handleClose} aria-label="Close">&times;</button>
-      </div>
-      
-      <div class="modal-body">
-        <slot>
-          <input 
-            bind:this={inputElement}
-            bind:value={inputValue} 
-            type="text" 
-            class="modal-input"
-            placeholder="Enter value..."
-          />
-        </slot>
-      </div>
-      
-      <div class="modal-footer">
-        {#if showCancel}
-          <button class="btn btn-secondary" on:click={handleClose}>
-            {cancelText}
+      <form on:submit|preventDefault={handleConfirm}>
+        <div class="modal-header">
+          <h3>{title}</h3>
+          <button type="button" class="modal-close" on:click={handleClose} aria-label="Close">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+          <slot>
+            <input 
+              bind:this={inputElement}
+              bind:value={inputValue} 
+              type="text" 
+              class="modal-input"
+              placeholder="Enter value..."
+            />
+          </slot>
+        </div>
+        
+        <div class="modal-footer">
+          {#if showCancel}
+            <button type="button" class="btn btn-secondary" on:click={handleClose}>
+              {cancelText}
+            </button>
+          {/if}
+          <button type="submit" class="btn btn-primary">
+            {confirmText}
           </button>
-        {/if}
-        <button class="btn btn-primary" on:click={handleConfirm}>
-          {confirmText}
-        </button>
-      </div>
+        </div>
+      </form>
     </div>
   </div>
 {/if}

@@ -2,6 +2,20 @@
 
 A web application for managing 3GPP TDoc agenda items with approval workflow, revision tracking, and version control.
 
+## 📥 Quick Download
+
+**Ready to use? Download the latest version:**
+
+👉 **[Download 3gpp-tdoc-tracker.html](../../raw/main/dist/3gpp-tdoc-tracker.html)** 👈
+
+### How to Use:
+1. **Download** the single HTML file above
+2. **Save it** to any folder alongside your 3GPP agenda HTML files  
+3. **Double-click** to open in your web browser
+4. **No installation required** - works offline on Windows, Mac, and Linux
+
+---
+
 ## Features
 
 - **HTML Import**: Load TDoc data from 3GPP HTML agenda files
