@@ -4,8 +4,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Build outputs
-dist/
+# Build outputs (but keep the single file distribution)
+dist/index.html
+dist/assets/
 .svelte-kit/
 
 # Environment variables
