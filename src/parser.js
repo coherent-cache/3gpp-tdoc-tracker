@@ -193,7 +193,10 @@ export function parseTdocHtml(htmlContent) {
             selected: false,
             isRevision: false,
             parentTdoc: null,
-            revisionNumber: null
+            revisionNumber: null,
+            mergedInto: null,
+            mergeMetadata: null,
+            isUserCreated: false
         };
     }).filter(Boolean);
     
@@ -257,11 +260,37 @@ function applyUserChanges(tdocs, userChanges) {
     return tdocs.map(tdoc => {
         const userChange = changeMap.get(tdoc.tdocNumber);
         if (userChange) {
-            return {
+            const mergedInto = userChange.mergedInto || null;
+            const overrodeReplacedBy = Boolean(userChange.mergeOverride && mergedInto);
+            const previousReplacedBy = tdoc.replacedBy ?? "";
+            const previousReplacedByHref = tdoc.replacedByHref ?? "";
+
+            const updatedTdoc = {
                 ...tdoc,
-                userApproval: userChange.userApproval,
-                userComments: userChange.userComments
+                mergedInto,
+                mergeMetadata: mergedInto
+                    ? {
+                        previousReplacedBy,
+                        previousReplacedByHref,
+                        overrodeReplacedBy
+                    }
+                    : null
             };
+
+            if (Object.prototype.hasOwnProperty.call(userChange, "userApproval")) {
+                updatedTdoc.userApproval = userChange.userApproval;
+            }
+
+            if (Object.prototype.hasOwnProperty.call(userChange, "userComments")) {
+                updatedTdoc.userComments = userChange.userComments;
+            }
+
+            if (overrodeReplacedBy) {
+                updatedTdoc.replacedBy = mergedInto;
+                updatedTdoc.replacedByHref = `#${mergedInto}`;
+            }
+
+            return updatedTdoc;
         }
         return tdoc;
     });

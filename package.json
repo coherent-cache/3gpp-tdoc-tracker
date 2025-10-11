@@ -1,6 +1,6 @@
 {
   "name": "3gpp-tdoc-tracker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "3GPP TDoc Agenda Management Tool",
   "type": "module",
   "scripts": {

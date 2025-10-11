@@ -4,18 +4,22 @@
   export let onFileUpload;
   export let onRevision;
   export let onLsReply;
+  export let onAddTdoc;
+  export let onMerge;
   export let onClearApproval;
   export let onFilterChange;
   export let currentTdoc = null;
   export let fileInput;
   export let currentFilter = "all";
   export let onToggleSidebar = null;
+  export let canAddTdoc = false;
 
   const approvalButtons = [
     { key: "approved", label: "Approve", class: "btn-approved" },
     { key: "agreed", label: "Agree", class: "btn-agreed" },
     { key: "noted", label: "Note", class: "btn-noted" },
     { key: "revised", label: "Revise", class: "btn-revised" },
+    { key: "merged", label: "Merge", class: "btn-merged" },
     { key: "postponed", label: "Postpone", class: "btn-postponed" },
     { key: "not_pursued", label: "Not Pursue", class: "btn-not-pursued" },
   ];
@@ -23,6 +27,8 @@
   function handleApprovalClick(status) {
     if (status === "revised") {
       onRevision(selectedRowId);
+    } else if (status === "merged") {
+      onMerge?.(selectedRowId);
     } else {
       onApprovalClick(status);
     }
@@ -55,7 +61,8 @@
     // They must clear the approval first before setting a different one
     if (
       currentTdoc.userApproval === "revised" ||
-      currentTdoc.userApproval === "replied to"
+      currentTdoc.userApproval === "replied to" ||
+      currentTdoc.userApproval === "merged"
     ) {
       return false;
     }
@@ -85,6 +92,15 @@
   <div class="action-row">
     <div class="action-left">
       <button class="btn" on:click={triggerFileUpload}> Load HTML </button>
+
+      <button
+        class="btn"
+        disabled={!canAddTdoc}
+        on:click={() => onAddTdoc?.()}
+        title="Add a new TDoc entry (inserts after the selected row when available)"
+      >
+        Add TDoc
+      </button>
 
       <div class="separator"></div>
 

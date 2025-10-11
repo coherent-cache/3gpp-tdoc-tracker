@@ -28,6 +28,26 @@
   let pendingDeleteVersion = null;
   let revisionTdocNumber = "";
   let lsOutNumber = "";
+  let showAddTdocModal = false;
+  let showMergeModal = false;
+  let pendingMergeTdocId = null;
+  let mergeTargetNumber = "";
+
+  function createDefaultNewTdocForm() {
+    return {
+      agenda: "",
+      topic: "",
+      tdocNumber: "",
+      title: "",
+      source: "",
+      type: "",
+      forField: "",
+      avail: "",
+      decision: "available",
+    };
+  }
+
+  let newTdocForm = createDefaultNewTdocForm();
 
   // Enhanced state management constants
   const STORAGE_KEYS = {
@@ -225,11 +245,15 @@
     if (!currentVersion) return [];
 
     return currentVersion.tdocs
-      .filter((tdoc) => tdoc.userApproval || tdoc.userComments)
+      .filter(
+        (tdoc) => tdoc.userApproval || tdoc.userComments || tdoc.mergedInto
+      )
       .map((tdoc) => ({
         tdocNumber: tdoc.tdocNumber,
         userApproval: tdoc.userApproval,
         userComments: tdoc.userComments,
+        mergedInto: tdoc.mergedInto,
+        mergeOverride: Boolean(tdoc.mergeMetadata?.overrodeReplacedBy),
       }));
   }
 
@@ -313,6 +337,15 @@
       return;
     }
 
+    if (selectedTdoc.userApproval === "merged") {
+      const mergedMessage = selectedTdoc.mergedInto
+        ? `This TDoc is marked as merged into ${selectedTdoc.mergedInto}. Please clear the merge before applying a different action.`
+        : `This TDoc is marked as merged. Please clear the merge before applying a different action.`;
+      errorMessage = mergedMessage;
+      showErrorModal = true;
+      return;
+    }
+
     const statusText = status.replace("_", " ");
 
     // Special handling for "revised" - trigger modal for new TDoc creation
@@ -321,11 +354,18 @@
       return;
     }
 
+    if (statusText === "merged") {
+      handleMerge(selectedRowId);
+      return;
+    }
+
     currentVersion.tdocs = currentVersion.tdocs.map((tdoc) => {
       if (tdoc.id === selectedRowId) {
         return {
           ...tdoc,
           userApproval: statusText,
+          mergedInto: null,
+          mergeMetadata: null,
           // Keep existing comments unchanged
         };
       }
@@ -334,8 +374,8 @@
 
     // Mark as changed and trigger reactivity
     markAsChanged();
-    currentVersion = currentVersion;
-    versions = versions;
+    currentVersion = { ...currentVersion, tdocs: [...currentVersion.tdocs] };
+    versions = [...versions];
   }
 
   function handleRowSelection(tdocId) {
@@ -433,6 +473,9 @@
       cellColors: null, // Clear any inherited cell colors
       replaces: parentTdoc.tdocNumber, // This revision replaces the parent
       replacesHref: `#${parentTdoc.tdocNumber}`, // Internal link to parent
+      mergedInto: null,
+      mergeMetadata: null,
+      isUserCreated: true,
     };
 
     // Update parent: set as revised (green) and reference new revision
@@ -443,6 +486,8 @@
           replacedBy: newTdocNumber,
           replacedByHref: `#${newTdocNumber}`, // Internal link to revision
           userApproval: "revised", // Parent becomes revised (green), keep existing comments
+          mergedInto: null,
+          mergeMetadata: null,
         };
       }
       return tdoc;
@@ -524,6 +569,9 @@
       userApproval: null,
       userComments: "",
       selected: false,
+      mergedInto: null,
+      mergeMetadata: null,
+      isUserCreated: true,
     };
 
     // Update replaces field in reply
@@ -537,6 +585,8 @@
           userApproval: "replied to", // Only modify user approval, not decision
           replacedBy: lsOutNumberTrimmed,
           replacedByHref: `#${lsOutNumberTrimmed}`, // Internal link to reply
+          mergedInto: null,
+          mergeMetadata: null,
         };
       }
       return tdoc;
@@ -565,7 +615,210 @@
     versions = [...versions];
   }
 
+  function handleAddTdoc() {
+    if (!currentVersion) return;
+
+    const baseTdoc = selectedRowId
+      ? currentVersion.tdocs.find((t) => t.id === selectedRowId)
+      : null;
+
+    newTdocForm = {
+      agenda:
+        baseTdoc?.inheritedAgenda ||
+        baseTdoc?.agenda ||
+        "",
+      topic:
+        baseTdoc?.inheritedTopic ||
+        baseTdoc?.topic ||
+        "",
+      tdocNumber: "",
+      title: "",
+      source: baseTdoc?.source || "",
+      type: baseTdoc?.type || "",
+      forField: baseTdoc?.for || "",
+      avail: baseTdoc?.avail || "",
+      decision: "available",
+    };
+
+    showAddTdocModal = true;
+  }
+
+  function closeAddTdocModal() {
+    showAddTdocModal = false;
+    newTdocForm = createDefaultNewTdocForm();
+  }
+
+  function confirmAddTdoc() {
+    if (!currentVersion) return;
+
+    const trimmedNumber = newTdocForm.tdocNumber.trim();
+    if (!trimmedNumber) {
+      errorMessage =
+        "TDoc number is required when adding a new TDoc entry.";
+      showErrorModal = true;
+      return;
+    }
+
+    const duplicate = currentVersion.tdocs.find(
+      (tdoc) => tdoc.tdocNumber === trimmedNumber
+    );
+    if (duplicate) {
+      errorMessage = `TDoc number "${trimmedNumber}" already exists. Please choose a different number.`;
+      showErrorModal = true;
+      return;
+    }
+
+    const validDecisions = ["available", "reserved"];
+    const decision = validDecisions.includes(newTdocForm.decision)
+      ? newTdocForm.decision
+      : "available";
+
+    const newTdoc = {
+      id: `${trimmedNumber}-${Date.now()}`,
+      agenda: newTdocForm.agenda.trim(),
+      topic: newTdocForm.topic.trim(),
+      tdocNumber: trimmedNumber,
+      tdocHref: "",
+      title: newTdocForm.title.trim(),
+      source: newTdocForm.source.trim(),
+      type: newTdocForm.type.trim(),
+      for: newTdocForm.forField.trim(),
+      avail: newTdocForm.avail.trim(),
+      treated: "",
+      treatedTooltip: "",
+      decision,
+      wdrn: "",
+      replacedBy: "",
+      replacedByHref: "",
+      replaces: "",
+      replacesHref: "",
+      originalBgColor: "",
+      originalColorClass: "",
+      cellColors: null,
+      userApproval: null,
+      userComments: "",
+      selected: false,
+      isRevision: false,
+      parentTdoc: null,
+      revisionNumber: null,
+      mergedInto: null,
+      mergeMetadata: null,
+      isUserCreated: true,
+    };
+
+    const insertIndex = selectedRowId
+      ? currentVersion.tdocs.findIndex((t) => t.id === selectedRowId) + 1
+      : currentVersion.tdocs.length;
+
+    if (insertIndex >= 0 && insertIndex <= currentVersion.tdocs.length) {
+      currentVersion.tdocs.splice(insertIndex, 0, newTdoc);
+    } else {
+      currentVersion.tdocs.push(newTdoc);
+    }
+
+    selectedRowId = newTdoc.id;
+    markAsChanged();
+    currentVersion = {
+      ...currentVersion,
+      tdocs: [...currentVersion.tdocs],
+    };
+    versions = [...versions];
+    closeAddTdocModal();
+  }
+
+  function handleMerge(tdocId) {
+    if (!currentVersion || !tdocId) return;
+
+    const targetTdoc = currentVersion.tdocs.find((tdoc) => tdoc.id === tdocId);
+    if (!targetTdoc) return;
+
+    pendingMergeTdocId = tdocId;
+    const prefixFallback = getRevisionTdocPrefix();
+    mergeTargetNumber =
+      targetTdoc.mergedInto ||
+      targetTdoc.replacedBy ||
+      prefixFallback ||
+      "";
+    showMergeModal = true;
+  }
+
+  function closeMergeModal() {
+    showMergeModal = false;
+    pendingMergeTdocId = null;
+    mergeTargetNumber = "";
+  }
+
+  function confirmMerge() {
+    if (!currentVersion || !pendingMergeTdocId) return;
+
+    const targetNumber = mergeTargetNumber.trim();
+    if (!targetNumber) {
+      errorMessage = "Enter the TDoc number this entry was merged into.";
+      showErrorModal = true;
+      return;
+    }
+
+    const sourceIndex = currentVersion.tdocs.findIndex(
+      (tdoc) => tdoc.id === pendingMergeTdocId
+    );
+    if (sourceIndex === -1) return;
+
+    const sourceTdoc = currentVersion.tdocs[sourceIndex];
+    if (sourceTdoc.tdocNumber === targetNumber) {
+      errorMessage = "A TDoc cannot be merged into itself.";
+      showErrorModal = true;
+      return;
+    }
+
+    const targetExists = currentVersion.tdocs.find(
+      (tdoc) => tdoc.tdocNumber === targetNumber
+    );
+    if (!targetExists) {
+      errorMessage = `TDoc number "${targetNumber}" was not found. Add it first before marking this entry as merged.`;
+      showErrorModal = true;
+      return;
+    }
+
+    const existingMergeMeta = sourceTdoc.mergeMetadata;
+    const mergeMetadata = {
+      previousReplacedBy:
+        existingMergeMeta?.previousReplacedBy ?? sourceTdoc.replacedBy ?? "",
+      previousReplacedByHref:
+        existingMergeMeta?.previousReplacedByHref ??
+        sourceTdoc.replacedByHref ??
+        "",
+      overrodeReplacedBy:
+        existingMergeMeta?.overrodeReplacedBy ?? !sourceTdoc.replacedBy,
+    };
+
+    const updatedReplacedBy = mergeMetadata.overrodeReplacedBy
+      ? targetNumber
+      : sourceTdoc.replacedBy ?? "";
+    const updatedReplacedByHref = mergeMetadata.overrodeReplacedBy
+      ? `#${targetNumber}`
+      : sourceTdoc.replacedByHref ?? "";
+
+    currentVersion.tdocs[sourceIndex] = {
+      ...sourceTdoc,
+      userApproval: "merged",
+      mergedInto: targetNumber,
+      mergeMetadata,
+      replacedBy: updatedReplacedBy,
+      replacedByHref: updatedReplacedByHref,
+    };
+
+    markAsChanged();
+    currentVersion = {
+      ...currentVersion,
+      tdocs: [...currentVersion.tdocs],
+    };
+    versions = [...versions];
+    closeMergeModal();
+  }
+
   function updateComments(tdocId, comments) {
+    if (!currentVersion) return;
+
     currentVersion.tdocs = currentVersion.tdocs.map((tdoc) => {
       if (tdoc.id === tdocId) {
         return { ...tdoc, userComments: comments };
@@ -573,9 +826,9 @@
       return tdoc;
     });
 
-    // Trigger reactivity
-    currentVersion = currentVersion;
-    versions = versions;
+    markAsChanged();
+    currentVersion = { ...currentVersion, tdocs: [...currentVersion.tdocs] };
+    versions = [...versions];
   }
 
   function clearApproval(tdocId) {
@@ -605,7 +858,27 @@
             ...tdoc,
             userApproval: null, // Clear the user approval
             replacedBy: "", // Clear the replaced-by reference
-            replacedByHref: null, // Clear the href as well
+            replacedByHref: "", // Clear the href as well
+            mergedInto: null,
+            mergeMetadata: null,
+          };
+        }
+        return tdoc;
+      });
+    } else if (targetTdoc.userApproval === "merged") {
+      currentVersion.tdocs = currentVersion.tdocs.map((tdoc) => {
+        if (tdoc.id === tdocId) {
+          const previousReplacedBy =
+            tdoc.mergeMetadata?.previousReplacedBy ?? "";
+          const previousReplacedByHref =
+            tdoc.mergeMetadata?.previousReplacedByHref ?? "";
+          return {
+            ...tdoc,
+            userApproval: null,
+            mergedInto: null,
+            mergeMetadata: null,
+            replacedBy: previousReplacedBy,
+            replacedByHref: previousReplacedByHref,
           };
         }
         return tdoc;
@@ -617,6 +890,8 @@
           return {
             ...tdoc,
             userApproval: null, // Clear the user approval, keeping comments
+            mergedInto: null,
+            mergeMetadata: null,
           };
         }
         return tdoc;
@@ -625,8 +900,8 @@
 
     // Mark as changed and trigger reactivity
     markAsChanged();
-    currentVersion = currentVersion;
-    versions = versions;
+    currentVersion = { ...currentVersion, tdocs: [...currentVersion.tdocs] };
+    versions = [...versions];
   }
 
   function deleteVersion(version) {
@@ -991,7 +1266,10 @@ ${tdoc.replacesHref ? `<a href="${tdoc.replacesHref}">${escapeHtml(tdoc.replaces
   }
 
   function generateApprovalCommentsCell(tdoc) {
-    const approval = tdoc.userApproval || "";
+    const approval =
+      tdoc.userApproval === "merged" && tdoc.mergedInto
+        ? `merged -> ${tdoc.mergedInto}`
+        : tdoc.userApproval || "";
     const comments = tdoc.userComments || "";
 
     if (approval && comments) {
@@ -1040,10 +1318,13 @@ ${tdoc.replacesHref ? `<a href="${tdoc.replacesHref}">${escapeHtml(tdoc.replaces
       onFileUpload={handleFileUpload}
       onRevision={handleRevision}
       onLsReply={handleLsReply}
+      onAddTdoc={handleAddTdoc}
+      onMerge={handleMerge}
       onClearApproval={clearApproval}
       onFilterChange={handleFilterChange}
       onToggleSidebar={toggleSidebar}
       {currentFilter}
+      canAddTdoc={!!currentVersion}
       bind:fileInput
     />
 
@@ -1096,6 +1377,176 @@ ${tdoc.replacesHref ? `<a href="${tdoc.replacesHref}">${escapeHtml(tdoc.replaces
 </div>
 
 <!-- Modals -->
+<Modal
+  bind:isOpen={showAddTdocModal}
+  title="Add TDoc"
+  onConfirm={confirmAddTdoc}
+  onClose={closeAddTdocModal}
+  confirmText="Add TDoc"
+>
+  <div class="modal-field">
+    <label for="new-tdoc-number">TDoc Number</label>
+    <input
+      id="new-tdoc-number"
+      type="text"
+      class="modal-input"
+      value={newTdocForm.tdocNumber}
+      placeholder="e.g. R5-235678"
+      on:input={(e) =>
+        (newTdocForm = {
+          ...newTdocForm,
+          tdocNumber: e.target.value,
+        })}
+    />
+  </div>
+  <div class="modal-columns">
+    <div class="modal-field">
+      <label for="new-tdoc-title">Title</label>
+      <input
+        id="new-tdoc-title"
+        type="text"
+        class="modal-input"
+        value={newTdocForm.title}
+        on:input={(e) =>
+          (newTdocForm = {
+            ...newTdocForm,
+            title: e.target.value,
+          })}
+      />
+    </div>
+    <div class="modal-field">
+      <label for="new-tdoc-source">Source</label>
+      <input
+        id="new-tdoc-source"
+        type="text"
+        class="modal-input"
+        value={newTdocForm.source}
+        on:input={(e) =>
+          (newTdocForm = {
+            ...newTdocForm,
+            source: e.target.value,
+          })}
+      />
+    </div>
+  </div>
+  <div class="modal-columns">
+    <div class="modal-field">
+      <label for="new-tdoc-type">Type</label>
+      <input
+        id="new-tdoc-type"
+        type="text"
+        class="modal-input"
+        value={newTdocForm.type}
+        on:input={(e) =>
+          (newTdocForm = {
+            ...newTdocForm,
+            type: e.target.value,
+          })}
+      />
+    </div>
+    <div class="modal-field">
+      <label for="new-tdoc-for">For</label>
+      <input
+        id="new-tdoc-for"
+        type="text"
+        class="modal-input"
+        value={newTdocForm.forField}
+        on:input={(e) =>
+          (newTdocForm = {
+            ...newTdocForm,
+            forField: e.target.value,
+          })}
+      />
+    </div>
+  </div>
+  <div class="modal-columns">
+    <div class="modal-field">
+      <label for="new-tdoc-agenda">Agenda</label>
+      <input
+        id="new-tdoc-agenda"
+        type="text"
+        class="modal-input"
+        value={newTdocForm.agenda}
+        on:input={(e) =>
+          (newTdocForm = {
+            ...newTdocForm,
+            agenda: e.target.value,
+          })}
+      />
+    </div>
+    <div class="modal-field">
+      <label for="new-tdoc-topic">Topic</label>
+      <input
+        id="new-tdoc-topic"
+        type="text"
+        class="modal-input"
+        value={newTdocForm.topic}
+        on:input={(e) =>
+          (newTdocForm = {
+            ...newTdocForm,
+            topic: e.target.value,
+          })}
+      />
+    </div>
+  </div>
+  <div class="modal-columns">
+    <div class="modal-field">
+      <label for="new-tdoc-avail">Avail</label>
+      <input
+        id="new-tdoc-avail"
+        type="text"
+        class="modal-input"
+        value={newTdocForm.avail}
+        on:input={(e) =>
+          (newTdocForm = {
+            ...newTdocForm,
+            avail: e.target.value,
+          })}
+      />
+    </div>
+    <div class="modal-field">
+      <label for="new-tdoc-decision">Decision</label>
+      <select
+        id="new-tdoc-decision"
+        class="modal-input"
+        value={newTdocForm.decision}
+        on:change={(e) =>
+          (newTdocForm = {
+            ...newTdocForm,
+            decision: e.target.value,
+          })}
+      >
+        <option value="available">Available</option>
+        <option value="reserved">Reserved</option>
+      </select>
+    </div>
+  </div>
+</Modal>
+
+<Modal
+  bind:isOpen={showMergeModal}
+  title="Mark as Merged"
+  onConfirm={confirmMerge}
+  onClose={closeMergeModal}
+  confirmText="Mark Merged"
+>
+  <div class="modal-field">
+    <label for="merge-target-number">Merged Into TDoc Number</label>
+    <input
+      id="merge-target-number"
+      type="text"
+      class="modal-input"
+      value={mergeTargetNumber}
+      placeholder="Enter target TDoc number"
+      on:input={(e) => (mergeTargetNumber = e.target.value)}
+    />
+    <p class="modal-hint">
+      Provide the TDoc number that supersedes this entry. Add the target first
+      if it is new.
+    </p>
+  </div>
+</Modal>
+
 <Modal
   bind:isOpen={showRevisionModal}
   title="Create Revision"

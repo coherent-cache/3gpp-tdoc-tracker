@@ -15,8 +15,37 @@
     onRowSelect(tdoc.id);
   }
 
+  function extractCommentsFromEditable(element) {
+    if (!element) return "";
+
+    const htmlContent = element.innerHTML || "";
+
+    if (!htmlContent.trim()) {
+      return "";
+    }
+
+    const normalizedHtml = htmlContent
+      .replace(/<div><br><\/div>/gi, "\n")
+      .replace(/<div>/gi, "\n")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/div>/gi, "")
+      .replace(/&nbsp;/gi, " ");
+
+    const decoder = document.createElement("textarea");
+    decoder.innerHTML = normalizedHtml;
+    const decodedText = decoder.value;
+
+    return decodedText
+      .replace(/^\n+/, "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\u00a0/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trimEnd();
+  }
+
   function handleCommentsBlur(event, tdocId) {
-    const comments = event.target.textContent;
+    const comments = extractCommentsFromEditable(event.target);
+    event.target.textContent = comments;
     onCommentsUpdate(tdocId, comments);
   }
 
@@ -113,6 +142,7 @@
         "replied to": "#99FF33",
         postponed: "#99FF33",
         "not pursued": "#99FF33",
+        merged: "#99FF33",
       };
       const normalizedApproval = userApproval.toLowerCase().trim();
       return approvalStates[normalizedApproval] || stateColors["default"];
@@ -218,6 +248,14 @@
       const rect = tableHeaderElement.getBoundingClientRect();
       headerHeight = Math.ceil(rect.height);
     }
+  }
+
+  function formatUserApproval(tdoc) {
+    if (!tdoc?.userApproval) return "";
+    if (tdoc.userApproval === "merged" && tdoc.mergedInto) {
+      return `merged -> ${tdoc.mergedInto}`;
+    }
+    return tdoc.userApproval;
   }
 
   onMount(() => {
@@ -392,7 +430,7 @@
                         getDecisionStateColor(tdoc.decision, tdoc.userApproval)
                 )};"
               >
-                {tdoc.userApproval || ""}
+                {formatUserApproval(tdoc)}
               </td>
               <td
                 class="editable-cell my-comments-cell"
@@ -404,6 +442,11 @@
                 )};"
                 contenteditable="true"
                 on:blur={(e) => handleCommentsBlur(e, tdoc.id)}
+                on:keydown={(e) => {
+                  if (e.key === "Enter") {
+                    e.stopPropagation();
+                  }
+                }}
                 on:click={(e) => {
                   // Only stop propagation if we're actually editing (focusing the cell)
                   if (

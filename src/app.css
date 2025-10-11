@@ -217,6 +217,12 @@ body {
   border-color: var(--success-color);
 }
 
+.btn-merged {
+  background-color: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+}
+
 .btn-postponed {
   background-color: var(--warning-color);
   color: white;
@@ -492,6 +498,7 @@ body {
 .my-comments-cell {
   max-width: 200px;
   background-color: #fffbf0 !important; /* Light cream background for My Comments */
+  white-space: pre-wrap;
 }
 
 /* Make comments cell more visually editable */
@@ -558,6 +565,32 @@ body {
 .comment-icon:hover {
   opacity: 1;
   background-color: rgba(0, 0, 0, 0.1);
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.modal-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.modal-hint {
+  font-size: 12px;
+  color: #666;
+  margin-top: 6px;
 }
 
 .floating-tooltip {
@@ -649,4 +682,3 @@ body {
   line-height: 1.5;
   margin: 0;
 }
-
